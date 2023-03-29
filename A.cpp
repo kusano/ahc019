@@ -475,7 +475,7 @@ int main()
     double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9;
     fprintf(
         stderr,
-        "%3d %.3f %8d %12lld %2d %2d %2d\n",
+        "%3d %.3f %8d %12lld %2d %2d %2d (",
         D,
         time,
         iter,
@@ -483,4 +483,8 @@ int main()
         bestScore.r1,
         bestScore.r2,
         (int)bestScore.V.size());
+    sort(bestScore.V.begin(), bestScore.V.end());
+    for (int i=0; i<(int)bestScore.V.size(); i++)
+        fprintf(stderr, "%s%d", i==0?"":", ", bestScore.V[i]);
+    fprintf(stderr, ")\n");
 }
