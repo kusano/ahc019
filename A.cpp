@@ -3,6 +3,8 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <chrono>
+#include <cstdio>
 using namespace std;
 
 struct Point
@@ -64,6 +66,7 @@ pair<vector<int>, vector<int>> expand(
 
     int n = (int)P1.size();
     vector<vector<Point>> B(n);
+    vector<int> checked(n);
     vector<int> A1(D*D*D), A2(D*D*D);
 
     for (int i=0; i<n; i++)
@@ -78,7 +81,10 @@ pair<vector<int>, vector<int>> expand(
         int i;
         Point p;
         for (i=0; i<n; i++)
-            for (Point o: B[i])
+            for (; checked[i]<(int)B[i].size(); checked[i]++)
+            {
+                Point o = B[i][checked[i]];
+
                 for (Point d: DD)
                 {
                     Point p1 = P1[i]+o+d;
@@ -102,6 +108,7 @@ pair<vector<int>, vector<int>> expand(
                     p = o+d;
                     goto ok;
                 }
+            }
         break;
     ok:;
         B[i].push_back(p);
@@ -212,15 +219,45 @@ int main()
     vector<int> F2 = read2D(D);
     vector<int> R2 = read2D(D);
 
+    chrono::system_clock::time_point start = chrono::system_clock::now();
+
     vector<int> bestA1;
     vector<int> bestA2;
     Score bestScore;
     bestScore.score = 999999999999999999;
 
-    for (int iter=0; iter<256; iter++)
+    int volume = D*D*D;
+    for (int i=0; i<2; i++)
     {
+        vector<int> &F = i==0?F1:F2;
+        vector<int> &R = i==0?R1:R2;
+        int v = 0;
+        for (int z=0; z<D; z++)
+        {
+            int w = 0;
+            for (int x=0; x<D; x++)
+                if (F[z*D+x]!=0)
+                    w++;
+            int h = 0;
+            for (int y=0; y<D; y++)
+                if (R[z*D+y]!=0)
+                    h++;
+            v += w*h;
+        }
+        volume = min(volume, v);
+    }
+
+    int iter;
+    for (iter=0; ; iter++)
+    {
+        chrono::system_clock::time_point now = chrono::system_clock::now();
+        double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9/5.0;
+        if (time>=1.)
+            break;
+
+        int n = xor64()%(volume-1)+1;
         vector<Point> P1, P2;
-        for (int i=0; i<5; i++)
+        for (int i=0; i<n; i++)
         {
             Point p1, p2;
             while (true)
@@ -287,5 +324,16 @@ int main()
         cout<<(i==0?"":" ")<<bestA2[i];
     cout<<endl;
 
-    cerr<<bestScore.score<<endl;
+    chrono::system_clock::time_point now = chrono::system_clock::now();
+    double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9;
+    fprintf(
+        stderr,
+        "%3d %.3f %8d %12lld %2d %2d %2d\n",
+        D,
+        time,
+        iter,
+        bestScore.score,
+        bestScore.r1,
+        bestScore.r2,
+        (int)bestScore.V.size());
 }
