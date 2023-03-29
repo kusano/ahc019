@@ -49,6 +49,15 @@ struct Point
     Point operator+(const Point &p) const {return Point(x+p.x, y+p.y, z+p.z);}
 };
 
+static const Point DP[] = {
+    Point(1, 0, 0),
+    Point(-1, 0, 0),
+    Point(0, 1, 0),
+    Point(0, -1, 0),
+    Point(0, 0, 1),
+    Point(0, 0, -1),
+};
+
 struct Score
 {
     long long score;
@@ -123,15 +132,6 @@ pair<vector<int>, vector<int>> expand(
     const vector<Point> &P1, const vector<int> &RT1,
     const vector<Point> &P2, const vector<int> &RT2)
 {
-    static const Point DD[] = {
-        Point(1, 0, 0),
-        Point(-1, 0, 0),
-        Point(0, 1, 0),
-        Point(0, -1, 0),
-        Point(0, 0, 1),
-        Point(0, 0, -1),
-    };
-
     int n = (int)P1.size();
     vector<vector<Point>> B(n);
     vector<int> checked(n);
@@ -153,7 +153,7 @@ pair<vector<int>, vector<int>> expand(
             {
                 Point o = B[i][checked[i]];
 
-                for (Point d: DD)
+                for (Point d: DP)
                 {
                     Point p1 = P1[i]+rotate(o+d, RT1[i]);
                     if (p1.x<0 || D<=p1.x ||
@@ -332,22 +332,39 @@ int main()
     vector<Point> P1, P2;
     vector<int> RT1, RT2;
 
+    auto checkPos1 = [&](Point p) -> bool
+    {
+        if (F1[p.z*D+p.x]==0 ||
+            R1[p.z*D+p.y]==0)
+            return false;
+
+        for (auto p1: P1)
+            if (p1==p)
+                return false;
+
+        return true;
+    };
+
+    auto checkPos2 = [&](Point p) -> bool
+    {
+        if (F2[p.z*D+p.x]==0 ||
+            R2[p.z*D+p.y]==0)
+            return false;
+
+        for (auto p2: P2)
+            if (p2==p)
+                return false;
+
+        return true;
+    };
+
     auto randomPos1 = [&]() -> Point
     {
         while (true)
         {
             Point p(xor64()%D, xor64()%D, xor64()%D);
-            if (F1[p.z*D+p.x]==0 ||
-                R1[p.z*D+p.y]==0)
-                continue;
-
-            bool ok = true;
-            for (int i=0; i<(int)P1.size() && ok; i++)
-                if (P1[i]==p)
-                    ok = false;
-            if (!ok)
-                continue;
-            return p;
+            if (checkPos1(p))
+                return p;
         }
     };
 
@@ -356,17 +373,8 @@ int main()
         while (true)
         {
             Point p(xor64()%D, xor64()%D, xor64()%D);
-            if (F2[p.z*D+p.x]==0 ||
-                R2[p.z*D+p.y]==0)
-                continue;
-
-            bool ok = true;
-            for (int i=0; i<(int)P2.size() && ok; i++)
-                if (P2[i]==p)
-                    ok = false;
-            if (!ok)
-                continue;
-            return p;
+            if (checkPos2(p))
+                return p;
         }
     };
 
@@ -417,7 +425,7 @@ int main()
         vector<int> RT2n = RT2;
 
         int target = xor64()%(int)P1n.size();
-        switch (xor64()%7)
+        switch (xor64()%9)
         {
         case 0:
             // ブロックの追加
@@ -438,22 +446,66 @@ int main()
             RT2n.erase(RT2n.begin()+target);
             break;
         case 2:
-            // 1個目を移動
+            // 1個目を大きく移動
             P1n[target] = randomPos1();
             break;
         case 3:
-            // 2個目を移動
+            // 2個目を大きく移動
             P2n[target] = randomPos2();
             break;
         case 4:
+            // 1個目を小さく移動
+            {
+                int d = xor64()%6;
+                bool ok = false;
+                for (int i=0; i<6; i++)
+                {
+                    Point p = P1n[target]+DP[(i+d)%6];
+                    if (0<=p.x && p.x<D &&
+                        0<=p.y && p.y<D &&
+                        0<=p.z && p.z<D &&
+                        checkPos1(p))
+                    {
+                        P1n[target] = p;
+                        ok = true;
+                        break;
+                    }
+                }
+                if (!ok)
+                    continue;
+            }
+            break;
+        case 5:
+            // 2個目を小さく移動
+            {
+                int d = xor64()%6;
+                bool ok = false;
+                for (int i=0; i<6; i++)
+                {
+                    Point p = P2n[target]+DP[(i+d)%6];
+                    if (0<=p.x && p.x<D &&
+                        0<=p.y && p.y<D &&
+                        0<=p.z && p.z<D &&
+                        checkPos2(p))
+                    {
+                        P2n[target] = p;
+                        ok = true;
+                        break;
+                    }
+                }
+                if (!ok)
+                    continue;
+            }
+            break;
+        case 6:
             // 1個目を回転
             RT1n[target] = xor64()%24;
             break;
-        case 5:
+        case 7:
             // 2個目を回転
             RT2n[target] = xor64()%24;
             break;
-        case 6:
+        case 8:
             // スワップ
             // 順番に拡張していくので意味があるかもしれない。
             if ((int)P1n.size()<=1)
