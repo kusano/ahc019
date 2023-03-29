@@ -47,13 +47,50 @@ vector<int> read2D(int D)
     return F;
 }
 
+Point rotate(Point p, int r)
+{
+    switch (r)
+    {
+    case  0: return Point( p.x,  p.y,  p.z);
+    case  1: return Point( p.x, -p.z,  p.y);
+    case  2: return Point( p.x, -p.y, -p.z);
+    case  3: return Point( p.x,  p.z, -p.y);
+
+    case  4: return Point(-p.x,  p.y, -p.z);
+    case  5: return Point(-p.x,  p.z,  p.y);
+    case  6: return Point(-p.x, -p.y,  p.z);
+    case  7: return Point(-p.x, -p.z, -p.y);
+
+    case  8: return Point( p.y, -p.x,  p.z);
+    case  9: return Point( p.y, -p.z, -p.x);
+    case 10: return Point( p.y,  p.x, -p.z);
+    case 11: return Point( p.y,  p.z,  p.x);
+
+    case 12: return Point(-p.y, -p.x, -p.z);
+    case 13: return Point(-p.y,  p.z, -p.x);
+    case 14: return Point(-p.y,  p.x,  p.z);
+    case 15: return Point(-p.y, -p.z,  p.x);
+
+    case 16: return Point( p.z,  p.y, -p.x);
+    case 17: return Point( p.z,  p.x,  p.y);
+    case 18: return Point( p.z, -p.y,  p.x);
+    case 19: return Point( p.z, -p.x, -p.y);
+
+    case 20: return Point(-p.z,  p.y,  p.x);
+    case 21: return Point(-p.z, -p.x,  p.y);
+    case 22: return Point(-p.z, -p.y, -p.x);
+    case 23: return Point(-p.z,  p.x, -p.y);
+    }
+    return Point();
+}
+
 // P1, P2からブロックを広げる。
 pair<vector<int>, vector<int>> expand(
     int D,
     const vector<int> &F1, const vector<int> &R1,
     const vector<int> &F2, const vector<int> &R2,
-    const vector<Point> &P1,
-    const vector<Point> &P2)
+    const vector<Point> &P1, const vector<int> &RT1,
+    const vector<Point> &P2, const vector<int> &RT2)
 {
     static const Point DD[] = {
         Point(1, 0, 0),
@@ -87,7 +124,7 @@ pair<vector<int>, vector<int>> expand(
 
                 for (Point d: DD)
                 {
-                    Point p1 = P1[i]+o+d;
+                    Point p1 = P1[i]+rotate(o+d, RT1[i]);
                     if (p1.x<0 || D<=p1.x ||
                         p1.y<0 || D<=p1.y ||
                         p1.z<0 || D<=p1.z ||
@@ -96,7 +133,7 @@ pair<vector<int>, vector<int>> expand(
                         R1[p1.z*D+p1.y]==0)
                         continue;
 
-                    Point p2 = P2[i]+o+d;
+                    Point p2 = P2[i]+rotate(o+d, RT2[i]);
                     if (p2.x<0 || D<=p2.x ||
                         p2.y<0 || D<=p2.y ||
                         p2.z<0 || D<=p2.z ||
@@ -113,9 +150,9 @@ pair<vector<int>, vector<int>> expand(
     ok:;
         B[i].push_back(p);
 
-        Point t = P1[i]+p;
+        Point t = P1[i]+rotate(p, RT1[i]);
         A1[t.x*D*D+t.y*D+t.z] = i+1;
-        t = P2[i]+p;
+        t = P2[i]+rotate(p, RT2[i]);
         A2[t.x*D*D+t.y*D+t.z] = i+1;
     }
 
@@ -255,8 +292,11 @@ int main()
         if (time>=1.)
             break;
 
-        int n = xor64()%(volume-1)+1;
-        vector<Point> P1, P2;
+        int maxn = min(volume, 50);
+        int n = xor64()%(maxn-1)+1;
+
+        vector<Point> P1(n), P2(n);
+        vector<int> RT1(n), RT2(n);
         for (int i=0; i<n; i++)
         {
             Point p1, p2;
@@ -293,11 +333,14 @@ int main()
 
                 break;
             }
-            P1.push_back(p1);
-            P2.push_back(p2);
+            P1[i] = p1;
+            P2[i] = p2;
+
+            RT1[i] = xor64()%24;
+            RT2[i] = xor64()%24;
         }
 
-        pair<vector<int>, vector<int>> A = expand(D, F1, R1, F2, R2, P1, P2);
+        pair<vector<int>, vector<int>> A = expand(D, F1, R1, F2, R2, P1, RT1, P2, RT2);
         vector<int> A1 = A.first;
         vector<int> A2 = A.second;
 
