@@ -417,7 +417,7 @@ int main()
         vector<int> RT2n = RT2;
 
         int target = xor64()%(int)P1n.size();
-        switch (xor64()%6)
+        switch (xor64()%7)
         {
         case 0:
             // ブロックの追加
@@ -453,6 +453,23 @@ int main()
             // 2個目を回転
             RT2n[target] = xor64()%24;
             break;
+        case 6:
+            // スワップ
+            // 順番に拡張していくので意味があるかもしれない。
+            if ((int)P1n.size()<=1)
+                continue;
+            while (true)
+            {
+                int target2 = xor64()%(int)P1n.size();
+                if (target2!=target)
+                {
+                    swap(P1n[target], P1n[target2]);
+                    swap(RT1n[target], RT1n[target2]);
+                    swap(P2n[target], P2n[target2]);
+                    swap(RT2n[target], RT2n[target2]);
+                    break;
+                }
+            }
         }
 
         double scoren = evaluate(P1n, RT1n, P2n, RT2n);
