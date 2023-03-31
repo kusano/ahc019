@@ -362,6 +362,16 @@ int main()
     };
     double score = evaluate(P, RT);
 
+    const static int typeNum = 6;
+    // 遷移種別の試行回数と、スコアが向上したかどうか。
+    int numTrial[typeNum];
+    int numSuccess[typeNum];
+    for (int i=0; i<typeNum; i++)
+    {
+        numTrial[i] = 1;
+        numSuccess[i] = 1;
+    }
+
     double temp_inv;
     int iter;
     for (iter=0; ; iter++)
@@ -379,8 +389,34 @@ int main()
         vector<Point> Pold[2] = {P[0], P[1]};
         vector<int> RTold[2] = {RT[0], RT[1]};
 
+        int type;
+        {
+            // これまでの成功確率に応じて遷移を決める。
+            //double rate[typeNum];
+            //for (int i=0; i<typeNum; i++)
+            //    rate[i] = (double)numSuccess[i]/numTrial[i];
+            // 固定値
+            double rate[typeNum] = {1., 1., 2., 2., 2., 1.,};
+
+            double sum = 0.;
+            for (int i=0; i<typeNum; i++)
+                sum += rate[i];
+
+            double p = xor64()/(double)0x80000000*sum;
+            double s = 0.;
+            type = 0;
+            for (int i=0; i<typeNum; i++)
+            {
+                s += rate[i];
+                if (s>p)
+                {
+                    type = i;
+                    break;
+                }
+            }
+        }
+
         int target = xor64()%(int)P[0].size();
-        int type = xor64()%9;
         switch (type)
         {
         case 0:
@@ -404,15 +440,16 @@ int main()
             }
             break;
         case 2:
-        case 3:
             // 大きく移動
-            P[type%2][target] = randomPos(type%2);
+            {
+                int o = xor64()%2;
+                P[o][target] = randomPos(o);
+            }
             break;
-        case 4:
-        case 5:
+        case 3:
             // 小さく移動
             {
-                int o = type%2;
+                int o = xor64()%2;
                 int d = xor64()%6;
                 bool ok = false;
                 for (int i=0; i<6; i++)
@@ -429,12 +466,11 @@ int main()
                     continue;
             }
             break;
-        case 6:
-        case 7:
+        case 4:
             // 回転
-            RT[type%2][target] = xor64()%24;
+            RT[xor64()%2][target] = xor64()%24;
             break;
-        case 8:
+        case 5:
             // スワップ
             // 順番に拡張していくので意味があるかもしれない。
             if ((int)P[0].size()<=1)
@@ -455,6 +491,10 @@ int main()
         }
 
         double score2 = evaluate(P, RT);
+
+        numTrial[type]++;
+        if (score2<score)
+            numSuccess[type]++;
 
         if (score2<score ||
             //exp((score2-score)*temp_inv)*0x80000000>xor64())
@@ -490,4 +530,13 @@ int main()
     for (int i=0; i<(int)bestScore.V.size(); i++)
         fprintf(stderr, "%s%d", i==0?"":", ", bestScore.V[i]);
     fprintf(stderr, ")\n");
+
+    //for (int i=0; i<typeNum; i++)
+    //    fprintf(
+    //        stderr,
+    //        "%d %8d/%8d %7.4f\n",
+    //        i,
+    //        numSuccess[i],
+    //        numTrial[i],
+    //        100.*numSuccess[i]/numTrial[i]);
 }
