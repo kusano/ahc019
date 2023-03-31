@@ -46,6 +46,10 @@ struct Point
 
     bool operator==(const Point &p) const {return x==p.x && y==p.y && z==p.z;}
     Point operator+(const Point &p) const {return Point(x+p.x, y+p.y, z+p.z);}
+    int idxF(int D) const {return z*D+x;}
+    int idxR(int D) const {return z*D+y;}
+    int idxA(int D) const {return x*D*D+y*D+z;}
+    bool inBox(int D) const {return 0<=x && x<D && 0<=y && y<D && 0<=z && z<D;}
 };
 
 static const Point DP[] = {
@@ -136,7 +140,7 @@ vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Poi
     {
         B[i].push_back(Point(0, 0, 0));
         for (int o=0; o<2; o++)
-            A[o][P[o][i].x*D*D+P[o][i].y*D+P[o][i].z] = i+1;
+            A[o][P[o][i].idxA(D)] = i+1;
     }
 
     while (true)
@@ -154,12 +158,10 @@ vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Poi
                     for (int j=0; j<2 && ok; j++)
                     {
                         Point p = P[j][i]+rotate(o+d, RT[j][i]);
-                        if (p.x<0 || D<=p.x ||
-                            p.y<0 || D<=p.y ||
-                            p.z<0 || D<=p.z ||
-                            A[j][p.x*D*D+p.y*D+p.z]!=0 ||
-                            F[j][p.z*D+p.x]==0 ||
-                            R[j][p.z*D+p.y]==0)
+                        if (!p.inBox(D) ||
+                            A[j][p.idxA(D)]!=0 ||
+                            F[j][p.idxF(D)]==0 ||
+                            R[j][p.idxR(D)]==0)
                             ok = false;
                     }
                     if (!ok)
@@ -175,7 +177,7 @@ vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Poi
         for (int o=0; o<2; o++)
         {
             Point t = P[o][i]+rotate(p, RT[o][i]);
-            A[o][t.x*D*D+t.y*D+t.z] = i+1;
+            A[o][t.idxA(D)] = i+1;
         }
     }
 
@@ -416,10 +418,7 @@ int main()
                 for (int i=0; i<6; i++)
                 {
                     Point p = P[o][target]+DP[(i+d)%6];
-                    if (0<=p.x && p.x<D &&
-                        0<=p.y && p.y<D &&
-                        0<=p.z && p.z<D &&
-                        checkPos(o, p))
+                    if (p.inBox(D) && checkPos(o, p))
                     {
                         P[o][target] = p;
                         ok = true;
