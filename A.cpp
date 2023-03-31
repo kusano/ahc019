@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <utility>
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -61,8 +60,7 @@ static const Point DP[] = {
 struct Score
 {
     long long score;
-    int r1;
-    int r2;
+    int r[2];
     vector<int> V;
 };
 
@@ -124,24 +122,21 @@ Point rotate(Point p, int r)
     return Point();
 }
 
-// P1, P2からブロックを広げる。
-pair<vector<int>, vector<int>> expand(
-    int D,
-    const vector<int> &F1, const vector<int> &R1,
-    const vector<int> &F2, const vector<int> &R2,
-    const vector<Point> &P1, const vector<int> &RT1,
-    const vector<Point> &P2, const vector<int> &RT2)
+// Pからブロックを広げる。
+vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vector<int> RT[2])
 {
-    int n = (int)P1.size();
+    int n = (int)P[0].size();
     vector<vector<Point>> B(n);
     vector<int> checked(n);
-    vector<int> A1(D*D*D), A2(D*D*D);
+    vector<int> A[2];
+    for (int o=0; o<2; o++)
+        A[o].resize(D*D*D);
 
     for (int i=0; i<n; i++)
     {
         B[i].push_back(Point(0, 0, 0));
-        A1[P1[i].x*D*D+P1[i].y*D+P1[i].z] = i+1;
-        A2[P2[i].x*D*D+P2[i].y*D+P2[i].z] = i+1;
+        for (int o=0; o<2; o++)
+            A[o][P[o][i].x*D*D+P[o][i].y*D+P[o][i].z] = i+1;
     }
 
     while (true)
@@ -155,24 +150,20 @@ pair<vector<int>, vector<int>> expand(
 
                 for (Point d: DP)
                 {
-                    Point p1 = P1[i]+rotate(o+d, RT1[i]);
-                    if (p1.x<0 || D<=p1.x ||
-                        p1.y<0 || D<=p1.y ||
-                        p1.z<0 || D<=p1.z ||
-                        A1[p1.x*D*D+p1.y*D+p1.z]!=0 ||
-                        F1[p1.z*D+p1.x]==0 ||
-                        R1[p1.z*D+p1.y]==0)
+                    bool ok = true;
+                    for (int j=0; j<2 && ok; j++)
+                    {
+                        Point p = P[j][i]+rotate(o+d, RT[j][i]);
+                        if (p.x<0 || D<=p.x ||
+                            p.y<0 || D<=p.y ||
+                            p.z<0 || D<=p.z ||
+                            A[j][p.x*D*D+p.y*D+p.z]!=0 ||
+                            F[j][p.z*D+p.x]==0 ||
+                            R[j][p.z*D+p.y]==0)
+                            ok = false;
+                    }
+                    if (!ok)
                         continue;
-
-                    Point p2 = P2[i]+rotate(o+d, RT2[i]);
-                    if (p2.x<0 || D<=p2.x ||
-                        p2.y<0 || D<=p2.y ||
-                        p2.z<0 || D<=p2.z ||
-                        A2[p2.x*D*D+p2.y*D+p2.z]!=0 ||
-                        F2[p2.z*D+p2.x]==0 ||
-                        R2[p2.z*D+p2.y]==0)
-                        continue;
-
                     p = o+d;
                     goto ok;
                 }
@@ -181,24 +172,21 @@ pair<vector<int>, vector<int>> expand(
     ok:;
         B[i].push_back(p);
 
-        Point t = P1[i]+rotate(p, RT1[i]);
-        A1[t.x*D*D+t.y*D+t.z] = i+1;
-        t = P2[i]+rotate(p, RT2[i]);
-        A2[t.x*D*D+t.y*D+t.z] = i+1;
+        for (int o=0; o<2; o++)
+        {
+            Point t = P[o][i]+rotate(p, RT[o][i]);
+            A[o][t.x*D*D+t.y*D+t.z] = i+1;
+        }
     }
 
     // シルエットに足りない部分を埋める。
     for (int i=0; i<2; i++)
     {
-        const vector<int> &F = i==0?F1:F2;
-        const vector<int> &R = i==0?R1:R2;
-        vector<int> &A = i==0?A1:A2;
-
         vector<int> Fok(D*D), Rok(D*D);
         for (int z=0; z<D; z++)
             for (int y=0; y<D; y++)
                 for (int x=0; x<D; x++)
-                    if (A[x*D*D+y*D+z]!=0)
+                    if (A[i][x*D*D+y*D+z]!=0)
                     {
                         Fok[z*D+x] = 1;
                         Rok[z*D+y] = 1;
@@ -207,70 +195,63 @@ pair<vector<int>, vector<int>> expand(
         int id = n;
         for (int z=0; z<D; z++)
             for (int x=0; x<D; x++)
-                if (F[z*D+x]!=0 && Fok[z*D+x]==0)
+                if (F[i][z*D+x]!=0 && Fok[z*D+x]==0)
                     for (int j=0; j<2; j++)
                         for (int y=0; y<D && Fok[z*D+x]==0; y++)
-                            if (R[z*D+y]!=0 && (j!=0 || Rok[z*D+y]==0))
+                            if (R[i][z*D+y]!=0 && (j!=0 || Rok[z*D+y]==0))
                             {
-                                A[x*D*D+y*D+z] = id+++1;
+                                A[i][x*D*D+y*D+z] = id+++1;
                                 Fok[z*D+x] = 1;
                                 Rok[z*D+y] = 1;
                             }
         for (int z=0; z<D; z++)
             for (int y=0; y<D; y++)
-                if (R[z*D+y]!=0 && Rok[z*D+y]==0)
+                if (R[i][z*D+y]!=0 && Rok[z*D+y]==0)
                     for (int x=0; x<D && Rok[z*D+y]==0; x++)
-                        if (F[z*D+x]!=0)
+                        if (F[i][z*D+x]!=0)
                         {
-                            A[x*D*D+y*D+z] = id+++1;
+                            A[i][x*D*D+y*D+z] = id+++1;
                             Fok[z*D+x] = 1;
                             Rok[z*D+y] = 1;
                         }
     }
 
-    return {A1, A2};
+    return vector<vector<int>>{A[0], A[1]};
 }
 
-Score calcScore(int D, const vector<int> &A1, const vector<int> &A2)
+Score calcScore(int D, vector<int> A[2])
 {
-    vector<int> N1, N2;
+    vector<int> N[2];
     for (int i=0; i<2; i++)
-    {
-        const vector<int> &A = i==0?A1:A2;
-        vector<int> &N = i==0?N1:N2;
-
         for (int x=0; x<D; x++)
             for (int y=0; y<D; y++)
                 for (int z=0; z<D; z++)
                 {
-                    int a = A[x*D*D+y*D+z];
+                    int a = A[i][x*D*D+y*D+z];
                     if (a!=0)
                     {
                         a--;
-                        while ((int)N1.size()<a+1)
-                        {
-                            N1.push_back(0);
-                            N2.push_back(0);
-                        }
-                        N[a]++;
+                        while ((int)N[0].size()<a+1)
+                            for (int o=0; o<2; o++)
+                                N[o].push_back(0);
+                        N[i][a]++;
                     }
                 }
-    }
 
     Score s;
-    s.r1 = 0;
-    s.r2 = 0;
-    for (int i=0; i<(int)N1.size(); i++)
+    for (int o=0; o<2; o++)
+        s.r[o] = 0;
+    for (int i=0; i<(int)N[0].size(); i++)
     {
-        if (N1[i]>0 && N2[i]>0)
-            s.V.push_back(N1[i]);
-        else if (N1[i]>0)
-            s.r1 += N1[i];
-        else if (N2[i]>0)
-            s.r2 += N2[i];
+        if (N[0][i]>0 && N[0][i]>0)
+            s.V.push_back(N[0][i]);
+        else if (N[0][i]>0)
+            s.r[0] += N[0][i];
+        else if (N[1][i]>0)
+            s.r[0] += N[1][i];
     }
 
-    double sum = s.r1+s.r2;
+    double sum = s.r[0]+s.r[1];
     for (int v: s.V)
         sum += 1./v;
     s.score = (long long)(1e9*sum);
@@ -278,31 +259,31 @@ Score calcScore(int D, const vector<int> &A1, const vector<int> &A2)
     return s;
 }
 
-void output(int D, const vector<int> &A1, const vector<int> &A2)
+void output(int D, vector<int> A[2])
 {
     int n = 0;
-    for (int a: A1)
-        n = max(n, a);
-    for (int a: A2)
-        n = max(n, a);
+    for (int o=0; o<2; o++)
+        for (int a: A[o])
+            n = max(n, a);
     cout<<n<<endl;
 
-    for (int i=0; i<D*D*D; i++)
-        cout<<(i==0?"":" ")<<A1[i];
-    cout<<endl;
-    for (int i=0; i<D*D*D; i++)
-        cout<<(i==0?"":" ")<<A2[i];
-    cout<<endl;
+    for (int o=0; o<2; o++)
+    {
+        for (int i=0; i<D*D*D; i++)
+            cout<<(i==0?"":" ")<<A[o][i];
+        cout<<endl;
+    }
 }
 
 int main()
 {
     int D;
     cin>>D;
-    vector<int> F1 = read2D(D);
-    vector<int> R1 = read2D(D);
-    vector<int> F2 = read2D(D);
-    vector<int> R2 = read2D(D);
+    vector<int> F[2], R[2];
+    F[0] = read2D(D);
+    R[0] = read2D(D);
+    F[1] = read2D(D);
+    R[1] = read2D(D);
 
     chrono::system_clock::time_point start = chrono::system_clock::now();
 
@@ -311,99 +292,73 @@ int main()
     int volume = D*D*D;
     for (int i=0; i<2; i++)
     {
-        vector<int> &F = i==0?F1:F2;
-        vector<int> &R = i==0?R1:R2;
         int v = 0;
         for (int z=0; z<D; z++)
         {
             int w = 0;
             for (int x=0; x<D; x++)
-                if (F[z*D+x]!=0)
+                if (F[0][z*D+x]!=0)
                     w++;
             int h = 0;
             for (int y=0; y<D; y++)
-                if (R[z*D+y]!=0)
+                if (R[0][z*D+y]!=0)
                     h++;
             v += w*h;
         }
         volume = min(volume, v);
     }
 
-    vector<Point> P1, P2;
-    vector<int> RT1, RT2;
+    vector<Point> P[2];
+    vector<int> RT[2];
 
-    auto checkPos1 = [&](Point p) -> bool
+    auto checkPos = [&](int o, Point p) -> bool
     {
-        if (F1[p.z*D+p.x]==0 ||
-            R1[p.z*D+p.y]==0)
+        if (F[o][p.z*D+p.x]==0 ||
+            R[o][p.z*D+p.y]==0)
             return false;
 
-        for (auto p1: P1)
-            if (p1==p)
+        for (auto pt: P[o])
+            if (pt==p)
                 return false;
 
         return true;
     };
 
-    auto checkPos2 = [&](Point p) -> bool
-    {
-        if (F2[p.z*D+p.x]==0 ||
-            R2[p.z*D+p.y]==0)
-            return false;
-
-        for (auto p2: P2)
-            if (p2==p)
-                return false;
-
-        return true;
-    };
-
-    auto randomPos1 = [&]() -> Point
+    auto randomPos = [&](int o) -> Point
     {
         while (true)
         {
             Point p(xor64()%D, xor64()%D, xor64()%D);
-            if (checkPos1(p))
+            if (checkPos(o, p))
                 return p;
         }
     };
 
-    auto randomPos2 = [&]() -> Point
+    for (int o=0; o<2; o++)
     {
-        while (true)
-        {
-            Point p(xor64()%D, xor64()%D, xor64()%D);
-            if (checkPos2(p))
-                return p;
-        }
-    };
+        P[o].push_back(randomPos(o));
+        RT[o].push_back(xor64()%24);
+    }
 
-    P1.push_back(randomPos1());
-    P2.push_back(randomPos2());
-    RT1.push_back(xor64()%24);
-    RT2.push_back(xor64()%24);
-
-    vector<int> bestA1;
-    vector<int> bestA2;
+    vector<int> bestA[2];
     Score bestScore;
     bestScore.score = 999999999999999999;
 
-    auto evaluate = [&](const vector<Point> &P1, const vector<int> &RT1, const vector<Point> &P2, const vector<int> &RT2) -> double
+    auto evaluate = [&](vector<Point> P[2], vector<int> RT[2]) -> double
     {
-        pair<vector<int>, vector<int>> A = expand(D, F1, R1, F2, R2, P1, RT1, P2, RT2);
-        vector<int> A1 = A.first;
-        vector<int> A2 = A.second;
+        vector<vector<int>> A_ = expand(D, F, R, P, RT);
+        vector<int> A[2] = {A_[0], A_[1]};
 
-        Score score = calcScore(D, A1, A2);
+        Score score = calcScore(D, A);
         if (score.score<bestScore.score)
         {
-            bestA1 = A1;
-            bestA2 = A2;
+            for (int o=0; o<2; o++)
+                bestA[o] = A[o];
             bestScore = score;
         }
         return score.score*1e-9;
     };
-    double score = evaluate(P1, RT1, P2, RT2);
+    double score = evaluate(P, RT);
 
     double temp_inv;
     int iter;
@@ -419,76 +374,54 @@ int main()
             temp_inv = 1./temp;
         }
 
-        vector<Point> P1n = P1;
-        vector<int> RT1n = RT1;
-        vector<Point> P2n = P2;
-        vector<int> RT2n = RT2;
+        vector<Point> Pold[2] = {P[0], P[1]};
+        vector<int> RTold[2] = {RT[0], RT[1]};
 
-        int target = xor64()%(int)P1n.size();
-        switch (xor64()%9)
+        int target = xor64()%(int)P[0].size();
+        int type = xor64()%9;
+        switch (type)
         {
         case 0:
             // ブロックの追加
-            if ((int)P1n.size()>=volume-1)
+            if ((int)P[0].size()>=volume-1)
                 continue;
-            P1n.push_back(randomPos1());
-            RT1n.push_back(xor64()%24);
-            P2n.push_back(randomPos2());
-            RT2n.push_back(xor64()%24);
+            for (int o=0; o<2; o++)
+            {
+                P[o].push_back(randomPos(o));
+                RT[o].push_back(xor64()%24);
+            }
             break;
         case 1:
             // ブロックの削除
-            if ((int)P1n.size()<=1)
+            if ((int)P[0].size()<=1)
                 continue;
-            P1n.erase(P1n.begin()+target);
-            RT1n.erase(RT1n.begin()+target);
-            P2n.erase(P2n.begin()+target);
-            RT2n.erase(RT2n.begin()+target);
-            break;
-        case 2:
-            // 1個目を大きく移動
-            P1n[target] = randomPos1();
-            break;
-        case 3:
-            // 2個目を大きく移動
-            P2n[target] = randomPos2();
-            break;
-        case 4:
-            // 1個目を小さく移動
+            for (int o=0; o<2; o++)
             {
-                int d = xor64()%6;
-                bool ok = false;
-                for (int i=0; i<6; i++)
-                {
-                    Point p = P1n[target]+DP[(i+d)%6];
-                    if (0<=p.x && p.x<D &&
-                        0<=p.y && p.y<D &&
-                        0<=p.z && p.z<D &&
-                        checkPos1(p))
-                    {
-                        P1n[target] = p;
-                        ok = true;
-                        break;
-                    }
-                }
-                if (!ok)
-                    continue;
+                P[o].erase(P[o].begin()+target);
+                RT[o].erase(RT[o].begin()+target);
             }
             break;
+        case 2:
+        case 3:
+            // 大きく移動
+            P[type%2][target] = randomPos(type%2);
+            break;
+        case 4:
         case 5:
-            // 2個目を小さく移動
+            // 小さく移動
             {
+                int o = type%2;
                 int d = xor64()%6;
                 bool ok = false;
                 for (int i=0; i<6; i++)
                 {
-                    Point p = P2n[target]+DP[(i+d)%6];
+                    Point p = P[o][target]+DP[(i+d)%6];
                     if (0<=p.x && p.x<D &&
                         0<=p.y && p.y<D &&
                         0<=p.z && p.z<D &&
-                        checkPos2(p))
+                        checkPos(o, p))
                     {
-                        P2n[target] = p;
+                        P[o][target] = p;
                         ok = true;
                         break;
                     }
@@ -498,47 +431,49 @@ int main()
             }
             break;
         case 6:
-            // 1個目を回転
-            RT1n[target] = xor64()%24;
-            break;
         case 7:
-            // 2個目を回転
-            RT2n[target] = xor64()%24;
+            // 回転
+            RT[type%2][target] = xor64()%24;
             break;
         case 8:
             // スワップ
             // 順番に拡張していくので意味があるかもしれない。
-            if ((int)P1n.size()<=1)
+            if ((int)P[0].size()<=1)
                 continue;
             while (true)
             {
-                int target2 = xor64()%(int)P1n.size();
+                int target2 = xor64()%(int)P[0].size();
                 if (target2!=target)
                 {
-                    swap(P1n[target], P1n[target2]);
-                    swap(RT1n[target], RT1n[target2]);
-                    swap(P2n[target], P2n[target2]);
-                    swap(RT2n[target], RT2n[target2]);
+                    for (int o=0; o<2; o++)
+                    {
+                        swap(P[o][target], P[o][target2]);
+                        swap(RT[o][target], RT[o][target2]);
+                    }
                     break;
                 }
             }
         }
 
-        double scoren = evaluate(P1n, RT1n, P2n, RT2n);
+        double score2 = evaluate(P, RT);
 
-        if (scoren<score ||
+        if (score2<score ||
             //exp((score2-score)*temp_inv)*0x80000000>xor64())
-            my_exp((score-scoren)*temp_inv)>xor64())
+            my_exp((score-score2)*temp_inv)>xor64())
         {
-            score = scoren;
-            P1 = P1n;
-            RT1 = RT1n;
-            P2 = P2n;
-            RT2 = RT2n;
+            score = score2;
+        }
+        else
+        {
+            for (int o=0; o<2; o++)
+            {
+                P[o] = Pold[o];
+                RT[o] = RTold[o];
+            }
         }
     }
 
-    output(D, bestA1, bestA2);
+    output(D, bestA);
 
     chrono::system_clock::time_point now = chrono::system_clock::now();
     double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9;
@@ -549,8 +484,8 @@ int main()
         time,
         iter,
         bestScore.score,
-        bestScore.r1,
-        bestScore.r2,
+        bestScore.r[0],
+        bestScore.r[1],
         (int)bestScore.V.size());
     sort(bestScore.V.begin(), bestScore.V.end());
     for (int i=0; i<(int)bestScore.V.size(); i++)
