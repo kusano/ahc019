@@ -127,14 +127,24 @@ Point rotate(Point p, int r)
 }
 
 // Pからブロックを広げる。
-vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vector<int> RT[2])
+void expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vector<int> RT[2], vector<int> A[2])
 {
     int n = (int)P[0].size();
-    vector<vector<Point>> B(n);
-    vector<int> checked(n);
-    vector<int> A[2];
+
+    static vector<vector<Point>> B;
+    if (B.size()<n)
+        B.resize(n);
+    for (int i=0; i<n; i++)
+        B[i].clear();
+    static vector<int> checked;
+    checked.clear();
+    checked.resize(n);
+
     for (int o=0; o<2; o++)
+    {
+        A[o].clear();
         A[o].resize(D*D*D);
+    }
 
     for (int i=0; i<n; i++)
     {
@@ -184,7 +194,13 @@ vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Poi
     // シルエットに足りない部分を埋める。
     for (int i=0; i<2; i++)
     {
-        vector<int> Fok(D*D), Rok(D*D);
+        static vector<int> Fok;
+        Fok.clear();
+        Fok.resize(D*D);
+        static vector<int> Rok;
+        Rok.clear();
+        Rok.resize(D*D);
+
         for (int z=0; z<D; z++)
             for (int y=0; y<D; y++)
                 for (int x=0; x<D; x++)
@@ -217,13 +233,14 @@ vector<vector<int>> expand(int D, vector<int> F[2], vector<int> R[2], vector<Poi
                             Rok[z*D+y] = 1;
                         }
     }
-
-    return vector<vector<int>>{A[0], A[1]};
 }
 
 Score calcScore(int D, vector<int> A[2])
 {
-    vector<int> N[2];
+    static vector<int> N[2];
+    for (int i=0; i<2; i++)
+        N[i].clear();
+
     for (int i=0; i<2; i++)
         for (int x=0; x<D; x++)
             for (int y=0; y<D; y++)
@@ -348,8 +365,8 @@ int main()
 
     auto evaluate = [&](vector<Point> P[2], vector<int> RT[2]) -> double
     {
-        vector<vector<int>> A_ = expand(D, F, R, P, RT);
-        vector<int> A[2] = {A_[0], A_[1]};
+        static vector<int> A[2];
+        expand(D, F, R, P, RT, A);
 
         Score score = calcScore(D, A);
         if (score.score<bestScore.score)
@@ -362,7 +379,7 @@ int main()
     };
     double score = evaluate(P, RT);
 
-    const static int typeNum = 6;
+    const static int typeNum = 7;
     // 遷移種別の試行回数と、スコアが向上したかどうか。
     int numTrial[typeNum];
     int numSuccess[typeNum];
@@ -382,12 +399,17 @@ int main()
             double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9/TIME;
             if (time>1.0)
                 break;
-            double temp = (1.0-time);
+            double temp = .5*(1.0-time);
             temp_inv = 1./temp;
         }
 
-        vector<Point> Pold[2] = {P[0], P[1]};
-        vector<int> RTold[2] = {RT[0], RT[1]};
+        static vector<Point> Pold[2];
+        static vector<int> RTold[2];
+        for (int o=0; o<2; o++)
+        {
+            Pold[o] = P[o];
+            RTold[o] = RT[o];
+        }
 
         int type;
         {
@@ -396,7 +418,7 @@ int main()
             //for (int i=0; i<typeNum; i++)
             //    rate[i] = (double)numSuccess[i]/numTrial[i];
             // 固定値
-            double rate[typeNum] = {1., 1., 2., 2., 2., 1.,};
+            double rate[typeNum] = {1., 1., 2., 2., 2., 1., 0.};
 
             double sum = 0.;
             for (int i=0; i<typeNum; i++)
@@ -488,6 +510,21 @@ int main()
                     break;
                 }
             }
+        case 6:
+            // 対応関係をスワップ
+            if ((int)P[0].size()<=1)
+                continue;
+            while (true)
+            {
+                int target2 = xor64()%(int)P[0].size();
+                if (target2!=target)
+                {
+                    int o = xor64()%2;
+                    swap(P[o][target], P[o][target2]);
+                    swap(RT[o][target], RT[o][target2]);
+                    break;
+                }
+            }
         }
 
         double score2 = evaluate(P, RT);
@@ -534,7 +571,7 @@ int main()
     //for (int i=0; i<typeNum; i++)
     //    fprintf(
     //        stderr,
-    //        "%d %8d/%8d %7.4f\n",
+    //        "%d %8d/%8d %8.4f\n",
     //        i,
     //        numSuccess[i],
     //        numTrial[i],
