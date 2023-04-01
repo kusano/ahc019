@@ -5,11 +5,15 @@
 #include <chrono>
 #include <cstdio>
 #include <cmath>
+#include <cstdlib>
 using namespace std;
 
 #ifndef TIME
 #define TIME 5.8
 #endif
+
+double Temp = 0.5;
+double TypeProb[] = {1., 1., 2., 2., 2., 1., 0.};
 
 const int expN = 1024;
 const double expX = 16;
@@ -298,8 +302,15 @@ void output(int D, vector<int> A[2])
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    if (argc>1)
+    {
+        Temp = atof(argv[1]);
+        for (int i=1; i<7; i++)
+            TypeProb[i] = atof(argv[i+1]);
+    }
+
     int D;
     cin>>D;
     vector<int> F[2], R[2];
@@ -404,7 +415,7 @@ int main()
             double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9/TIME;
             if (time>1.0)
                 break;
-            double temp = .5*(1.0-time);
+            double temp = Temp*(1.0-time);
             temp_inv = 1./temp;
         }
 
@@ -423,18 +434,18 @@ int main()
             //for (int i=0; i<typeNum; i++)
             //    rate[i] = (double)numSuccess[i]/numTrial[i];
             // 固定値
-            double rate[typeNum] = {1., 1., 2., 2., 2., 1., 0.};
+            //double rate[typeNum] = {1., 1., 2., 2., 2., 1., 0.};
 
             double sum = 0.;
             for (int i=0; i<typeNum; i++)
-                sum += rate[i];
+                sum += TypeProb[i];
 
             double p = xor64()/(double)0x80000000*sum;
             double s = 0.;
             type = 0;
             for (int i=0; i<typeNum; i++)
             {
-                s += rate[i];
+                s += TypeProb[i];
                 if (s>p)
                 {
                     type = i;

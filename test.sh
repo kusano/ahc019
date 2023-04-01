@@ -2,7 +2,8 @@
 
 set -e
 
-g++ -O2 -o A A.cpp
+#g++ -O2 -o A A.cpp
+clang++ -std=c++17 -O2 -o A A.cpp
 for i in $(seq 0 19)
 do
   f=$(printf %04d $i).txt
