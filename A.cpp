@@ -7,7 +7,9 @@
 #include <cmath>
 using namespace std;
 
-const double TIME = 5.8;
+#ifndef TIME
+#define TIME 5.8
+#endif
 
 const int expN = 1024;
 const double expX = 16;
