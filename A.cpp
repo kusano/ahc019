@@ -139,6 +139,9 @@ void expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vecto
     static vector<int> checked;
     checked.clear();
     checked.resize(n);
+    static vector<int> checked_d;
+    checked_d.clear();
+    checked_d.resize(n);
 
     for (int o=0; o<2; o++)
     {
@@ -162,12 +165,12 @@ void expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vecto
             {
                 Point o = B[i][checked[i]];
 
-                for (Point d: DP)
+                for (; checked_d[i]<6; checked_d[i]++)
                 {
                     bool ok = true;
                     for (int j=0; j<2 && ok; j++)
                     {
-                        Point p = P[j][i]+rotate(o+d, RT[j][i]);
+                        Point p = P[j][i]+rotate(o+DP[checked_d[i]], RT[j][i]);
                         if (!p.inBox(D) ||
                             A[j][p.idxA(D)]!=0 ||
                             F[j][p.idxF(D)]==0 ||
@@ -176,9 +179,10 @@ void expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vecto
                     }
                     if (!ok)
                         continue;
-                    p = o+d;
+                    p = o+DP[checked_d[i]];
                     goto ok;
                 }
+                checked_d[i] = 0;
             }
         break;
     ok:;
@@ -235,7 +239,7 @@ void expand(int D, vector<int> F[2], vector<int> R[2], vector<Point> P[2], vecto
     }
 }
 
-Score calcScore(int D, vector<int> A[2])
+void calcScore(int D, vector<int> A[2], Score *s)
 {
     static vector<int> N[2];
     for (int i=0; i<2; i++)
@@ -257,25 +261,23 @@ Score calcScore(int D, vector<int> A[2])
                     }
                 }
 
-    Score s;
     for (int o=0; o<2; o++)
-        s.r[o] = 0;
+        s->r[o] = 0;
+    s->V.clear();
     for (int i=0; i<(int)N[0].size(); i++)
     {
         if (N[0][i]>0 && N[0][i]>0)
-            s.V.push_back(N[0][i]);
+            s->V.push_back(N[0][i]);
         else if (N[0][i]>0)
-            s.r[0] += N[0][i];
+            s->r[0] += N[0][i];
         else if (N[1][i]>0)
-            s.r[0] += N[1][i];
+            s->r[0] += N[1][i];
     }
 
-    double sum = s.r[0]+s.r[1];
-    for (int v: s.V)
+    double sum = s->r[0]+s->r[1];
+    for (int v: s->V)
         sum += 1./v;
-    s.score = (long long)(1e9*sum);
-
-    return s;
+    s->score = (long long)(1e9*sum);
 }
 
 void output(int D, vector<int> A[2])
@@ -365,10 +367,11 @@ int main()
 
     auto evaluate = [&](vector<Point> P[2], vector<int> RT[2]) -> double
     {
+        static Score score;
         static vector<int> A[2];
         expand(D, F, R, P, RT, A);
 
-        Score score = calcScore(D, A);
+        calcScore(D, A, &score);
         if (score.score<bestScore.score)
         {
             for (int o=0; o<2; o++)
