@@ -12,8 +12,16 @@ using namespace std;
 #define TIME 5.8
 #endif
 
-double Temp = 0.5;
-double TypeProb[] = {1., 1., 2., 2., 2., 1., 0.};
+double Temp = 0.6784998756876306;
+double TypeProb[] = {
+    1.0,
+    1.8352021155496412,
+    3.0902460028053396,
+    8.191162686202041,
+    5.379776467199854,
+    0.4610194686960911,
+    1.7647654258644134,
+};
 
 const int expN = 1024;
 const double expX = 16;
