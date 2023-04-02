@@ -29,7 +29,7 @@ def objective(trial):
   for i in range(n):
     cmd = "./A"
     s = pwn.process(f"./A {temp} {prob[1]:.10f} {prob[2]:.10f} {prob[3]:.10f} {prob[4]:.10f} {prob[5]:.10f} {prob[6]:.10f} < tools/in/{i:04d}.txt > /dev/null", shell=True)
-    raw_score = int(s.readline().split()[3])
+    raw_score = int(s.readline().split()[4])
     s.close()
     sc = best_score[i]/raw_score
     print(i, sc)
@@ -37,22 +37,21 @@ def objective(trial):
   return score/n
 
 study = optuna.create_study(
-  study_name=f"ahc019_3",
+  study_name=f"ahc019_5",
   storage="sqlite:////home/kusano/ahc019/db.sqlite3",
   load_if_exists=True,
   direction="maximize")
 
-"""
+#"""
 study.enqueue_trial({
-  "temp": 0.5,
-  "prob1": 1.,
-  "prob2": 1.,
-  "prob3": 2.,
-  "prob4": 2.,
-  "prob5": 2.,
-  "prob6": 1.,
-  "prob7": 0.,
+  "temp": 0.6784998756876306,
+  "prob1": 1.7,
+  "prob2": 1.3,
+  "prob3": 5.7,
+  "prob4": 5.0,
+  "prob5": 1.9,
+  "prob6": 1.0,
 })
-"""
+#"""
 
 study.optimize(objective)

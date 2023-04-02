@@ -472,7 +472,7 @@ int main(int argc, char **argv)
         {
         case 0:
             // ブロックの追加
-            if ((int)P[0].size()>=min(volume/2, 24)-1)
+            if ((int)P[0].size()>=volume-1)
                 continue;
             for (int o=0; o<2; o++)
             {
