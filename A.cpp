@@ -14,13 +14,13 @@ using namespace std;
 
 double Temp = 0.6784998756876306;
 double TypeProb[] = {
-    1.0,
-    1.7,
-    1.3,
-    5.7,
-    5.0,
-    1.9,
-    1.0,
+    1.0, // 追加
+    1.7, // 削除
+    1.3, // 大きく移動
+    5.7, // 小さく移動
+    5.0, // 回転
+    1.9, // スワップ
+    1.0, // 片方スワップ
 };
 
 const int expN = 1024;
@@ -519,7 +519,16 @@ int main(int argc, char **argv)
             break;
         case 4:
             // 回転
-            RT[xor64()%2][target] = xor64()%24;
+            while (true)
+            {
+                int o = xor64()%2;
+                int r = xor64()%24;
+                if (RT[o][target]!=r)
+                {
+                    RT[o][target] = r;
+                    break;
+                }
+            }
             break;
         case 5:
             // スワップ
