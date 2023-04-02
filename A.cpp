@@ -438,12 +438,17 @@ int main(int argc, char **argv)
         int type;
         {
             // これまでの成功確率に応じて遷移を決める。
-            //double rate[typeNum];
             //for (int i=0; i<typeNum; i++)
-            //    rate[i] = (double)numSuccess[i]/numTrial[i];
-            // 固定値
-            //double rate[typeNum] = {1., 1., 2., 2., 2., 1., 0.};
+            //    TypeProb[i] = (double)numSuccess[i]/numTrial[i];
+            //// ときどきリセット
+            //if (iter%10000==0)
+            //    for (int i=0; i<typeNum; i++)
+            //    {
+            //        numTrial[i] = 1;
+            //        numSuccess[i] = 1;
+            //    }
 
+            // 固定値
             double sum = 0.;
             for (int i=0; i<typeNum; i++)
                 sum += TypeProb[i];
@@ -467,7 +472,7 @@ int main(int argc, char **argv)
         {
         case 0:
             // ブロックの追加
-            if ((int)P[0].size()>=volume-1)
+            if ((int)P[0].size()>=min(volume/2, 24)-1)
                 continue;
             for (int o=0; o<2; o++)
             {
@@ -579,8 +584,9 @@ int main(int argc, char **argv)
     double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9;
     fprintf(
         stderr,
-        "%3d %.3f %8d %12lld %2d %2d %2d (",
+        "%3d %4d %.3f %8d %12lld %2d %2d %2d (",
         D,
+        volume,
         time,
         iter,
         bestScore.score,
