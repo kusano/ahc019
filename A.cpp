@@ -12,7 +12,7 @@ using namespace std;
 #define TIME 5.8
 #endif
 
-double Temp = 0.6784998756876306;
+double Temp = 0.5;
 double TypeProb[] = {
     1.0, // 追加
     1.7, // 削除
@@ -417,7 +417,7 @@ int main(int argc, char **argv)
     int iter;
     for (iter=0; ; iter++)
     {
-        if (iter%0x100==0)
+        if (iter%0x400==0)
         {
             chrono::system_clock::time_point now = chrono::system_clock::now();
             double time = chrono::duration_cast<chrono::nanoseconds>(now-start).count()*1e-9/TIME;
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
         {
         case 0:
             // ブロックの追加
-            if ((int)P[0].size()>=volume-1)
+            if ((int)P[0].size()>=volume-2)
                 continue;
             for (int o=0; o<2; o++)
             {

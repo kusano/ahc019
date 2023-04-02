@@ -37,7 +37,7 @@ def objective(trial):
   return score/n
 
 study = optuna.create_study(
-  study_name=f"ahc019_5",
+  study_name=f"ahc019_6",
   storage="sqlite:////home/kusano/ahc019/db.sqlite3",
   load_if_exists=True,
   direction="maximize")
